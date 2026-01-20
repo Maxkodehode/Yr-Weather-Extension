@@ -1,0 +1,42 @@
+body {
+    width: 250px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    background: linear-gradient(to bottom, #4682B4, #87CEEB);
+    color: white;
+    text-align: center;
+}
+
+.container {
+    padding: 20px;
+}
+
+h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 400;
+}
+
+.icon-container {
+    margin: 15px 0;
+}
+
+.weather-info h1 {
+    font-size: 3rem;
+    margin: 0;
+}
+
+#description {
+    text-transform: capitalize;
+    margin: 5px 0;
+    font-weight: bold;
+}
+
+.weather-info p {
+    margin: 10px 0 0;
+    opacity: 0.9;
+}
+
+#weather-icon:hover {
+    
+}
