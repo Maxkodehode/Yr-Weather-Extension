@@ -1,8 +1,11 @@
 import { Welcome } from './types.js';
 import { weatherSymbolKeys } from './types.js';
 
+chrome.runtime.onInstalled.addListener(updateToolbarWeather);
+chrome.runtime.onStartup.addListener(updateToolbarWeather);
+
 async function updateToolbarWeather() {
-    const url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=60.39&lon=5.32";
+    const url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=60.38&lon=5.33";
 
     try {
         const res = await fetch(url, { headers: { 'User-Agent': 'BergenWeather/1.0 (maxkodehode@gmail.com)' } });
@@ -33,8 +36,8 @@ async function updateToolbarWeather() {
     }
 }
 
-chrome.runtime.onInstalled.addListener(updateToolbarWeather);
-chrome.runtime.onStartup.addListener(updateToolbarWeather);
+
+
 
 chrome.alarms.create("weatherUpdate", { periodInMinutes: 30 });
 
