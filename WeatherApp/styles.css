@@ -2,7 +2,7 @@ body {
     width: 250px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
-    background: linear-gradient(to bottom, #4682B4, #87CEEB);
+    background: linear-gradient(to bottom, #212232, #1f2037);
     color: white;
     text-align: center;
 }
