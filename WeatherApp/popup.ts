@@ -153,6 +153,16 @@ async function loadWeatherForPosition(lat: number, lon: number, locationName: st
         renderCurrent(weather, locationName);
         renderHourly(weather);
         cacheLocation(lat, lon, locationName);
+
+        // Send weather data to background so it can update the toolbar icon
+        const symbolCode = weather.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
+        const temp = Math.round(weather.properties.timeseries[0].data.instant.details.air_temperature);
+        const iconUrl = getWeatherIconUrl(symbolCode);
+        chrome.runtime.sendMessage({
+            type: 'UPDATE_TOOLBAR',
+            iconUrl,
+            temperature: temp,
+        });
     } catch (err) {
         console.error('Weather load failed:', err);
         showError('Failed to load weather data');
