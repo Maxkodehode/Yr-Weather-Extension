@@ -16,9 +16,24 @@ function getCachedLocation() {
         return null;
     }
 }
-function cacheLocation(lat, lon, name) {
-    const cached = { lat, lon, name, timestamp: Date.now() };
+function cacheLocation(lat, lon, name, accuracy) {
+    const cached = { lat, lon, name, timestamp: Date.now(), accuracy };
     localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify(cached));
+}
+function displayAccuracy(accuracyMeters) {
+    const el = document.getElementById('location-accuracy');
+    const rounded = Math.round(accuracyMeters);
+    el.textContent = `±${rounded}m`;
+    el.classList.remove('good', 'medium', 'poor');
+    if (rounded < 50) {
+        el.classList.add('good');
+    }
+    else if (rounded < 200) {
+        el.classList.add('medium');
+    }
+    else {
+        el.classList.add('poor');
+    }
 }
 function getCurrentPosition() {
     return new Promise((resolve, reject) => {
@@ -174,13 +189,14 @@ function setLoading(loading) {
         loader.style.display = loading ? 'block' : 'none';
 }
 // --- Main ---
-async function loadWeatherForPosition(lat, lon, locationName) {
+async function loadWeatherForPosition(lat, lon, locationName, accuracy) {
     setLoading(true);
     try {
         const weather = await fetchWeather(lat, lon);
         renderCurrent(weather, locationName);
         renderHourly(weather);
-        cacheLocation(lat, lon, locationName);
+        cacheLocation(lat, lon, locationName, accuracy);
+        displayAccuracy(accuracy);
         // Send weather data to background so it can update the toolbar icon
         const symbolCode = weather.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
         const temp = Math.round(weather.properties.timeseries[0].data.instant.details.air_temperature);
@@ -203,6 +219,8 @@ async function initExtension() {
     const cached = getCachedLocation();
     if (cached) {
         renderCurrent(await fetchWeather(cached.lat, cached.lon).catch(() => null), cached.name);
+        if (cached.accuracy)
+            displayAccuracy(cached.accuracy);
         // Refresh in background
     }
     // Get fresh location — sample over time for best accuracy
@@ -210,6 +228,7 @@ async function initExtension() {
         const pos = await refinePosition();
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
+        const accuracy = pos.coords.accuracy;
         // Reverse geocode for display name
         let locationName = 'Current Location';
         try {
@@ -218,7 +237,7 @@ async function initExtension() {
         catch (e) {
             console.warn('Geocoding failed, using fallback name');
         }
-        await loadWeatherForPosition(lat, lon, locationName);
+        await loadWeatherForPosition(lat, lon, locationName, accuracy);
     }
     catch (err) {
         console.error('Geolocation failed:', err);

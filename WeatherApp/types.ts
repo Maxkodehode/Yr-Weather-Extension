@@ -197,4 +197,5 @@ export interface CachedLocation {
     lon: number;
     name: string;
     timestamp: number;
+    accuracy: number;
 }
