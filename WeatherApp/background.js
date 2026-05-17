@@ -7,8 +7,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 // Listen for weather data from popup
 chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'UPDATE_TOOLBAR' && message.iconUrl && message.temperature !== undefined) {
-        updateToolbarFromPopup(message.iconUrl, message.temperature);
+    if (message.type === 'UPDATE_TOOLBAR' && message.symbolCode && message.temperature !== undefined) {
+        const fileName = weatherSymbolKeys[message.symbolCode] || message.symbolCode;
+        const iconPath = `icons/${fileName}.png`;
+        updateToolbarIcon(iconPath, message.temperature);
     }
 });
 async function getPosition() {
@@ -32,8 +34,8 @@ async function updateToolbarWeather() {
         const symbolCode = data.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
         if (symbolCode) {
             const fileName = weatherSymbolKeys[symbolCode] || symbolCode;
-            const iconUrl = `icons/${fileName}.png`;
-            await updateToolbarFromPopup(iconUrl, temp);
+            const iconPath = `icons/${fileName}.png`;
+            await updateToolbarIcon(iconPath, temp);
         }
         chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
     }
@@ -41,13 +43,13 @@ async function updateToolbarWeather() {
         console.error("Background weather update failed", err);
     }
 }
-async function updateToolbarFromPopup(iconUrl, temperature) {
+async function updateToolbarIcon(iconPath, temperature) {
     try {
         const canvas = new OffscreenCanvas(128, 128);
         const ctx = canvas.getContext('2d');
         if (!ctx)
             return;
-        const response = await fetch(chrome.runtime.getURL(iconUrl));
+        const response = await fetch(chrome.runtime.getURL(iconPath));
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
         ctx.clearRect(0, 0, 128, 128);

@@ -7,9 +7,11 @@ chrome.alarms.onAlarm.addListener((alarm: chrome.alarms.Alarm) => {
 });
 
 // Listen for weather data from popup
-chrome.runtime.onMessage.addListener((message: { type: string; iconUrl?: string; temperature?: number }) => {
-    if (message.type === 'UPDATE_TOOLBAR' && message.iconUrl && message.temperature !== undefined) {
-        updateToolbarFromPopup(message.iconUrl, message.temperature);
+chrome.runtime.onMessage.addListener((message: { type: string; symbolCode?: string; temperature?: number }) => {
+    if (message.type === 'UPDATE_TOOLBAR' && message.symbolCode && message.temperature !== undefined) {
+        const fileName = (weatherSymbolKeys as Record<string, string>)[message.symbolCode] || message.symbolCode;
+        const iconPath = `icons/${fileName}.png`;
+        updateToolbarIcon(iconPath, message.temperature);
     }
 });
 
@@ -42,8 +44,8 @@ async function updateToolbarWeather() {
 
         if (symbolCode) {
             const fileName = (weatherSymbolKeys as Record<string, string>)[symbolCode] || symbolCode;
-            const iconUrl = `icons/${fileName}.png`;
-            await updateToolbarFromPopup(iconUrl, temp);
+            const iconPath = `icons/${fileName}.png`;
+            await updateToolbarIcon(iconPath, temp);
         }
 
         chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
@@ -52,13 +54,13 @@ async function updateToolbarWeather() {
     }
 }
 
-async function updateToolbarFromPopup(iconUrl: string, temperature: number) {
+async function updateToolbarIcon(iconPath: string, temperature: number) {
     try {
         const canvas = new OffscreenCanvas(128, 128);
         const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
         if (!ctx) return;
 
-        const response = await fetch(chrome.runtime.getURL(iconUrl));
+        const response = await fetch(chrome.runtime.getURL(iconPath));
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
 
