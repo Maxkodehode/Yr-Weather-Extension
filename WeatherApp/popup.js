@@ -25,8 +25,53 @@ function getCurrentPosition() {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
             timeout: 10000,
-            maximumAge: 60000
+            maximumAge: 0
         });
+    });
+}
+// Sample geolocation over a period and return the most accurate reading
+function refinePosition(sampleIntervalMs = 3000, maxDurationMs = 30000) {
+    return new Promise((resolve, reject) => {
+        let bestPosition = null;
+        let settled = false;
+        const settle = () => {
+            if (settled)
+                return;
+            settled = true;
+            clearInterval(intervalId);
+            clearTimeout(timeoutId);
+            if (bestPosition) {
+                resolve(bestPosition);
+            }
+            else {
+                reject(new Error('Geolocation failed — no position received'));
+            }
+        };
+        // Stop sampling after maxDuration and use best result so far
+        const timeoutId = setTimeout(settle, maxDurationMs);
+        // Sample repeatedly at the given interval
+        const intervalId = setInterval(() => {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                if (!bestPosition || pos.coords.accuracy < bestPosition.coords.accuracy) {
+                    bestPosition = pos;
+                }
+                // If we got a very accurate reading (< 20m), settle early
+                if (pos.coords.accuracy < 20) {
+                    settle();
+                }
+            }, () => {
+                // Ignore individual sample failures; keep trying
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+        }, sampleIntervalMs);
+        // Take the first sample immediately
+        navigator.geolocation.getCurrentPosition((pos) => {
+            bestPosition = pos;
+            if (pos.coords.accuracy < 20) {
+                settle();
+            }
+        }, () => {
+            // Ignore; interval will retry
+        }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
     });
 }
 async function reverseGeocode(lat, lon) {
@@ -160,9 +205,9 @@ async function initExtension() {
         renderCurrent(await fetchWeather(cached.lat, cached.lon).catch(() => null), cached.name);
         // Refresh in background
     }
-    // Get fresh location
+    // Get fresh location — sample over time for best accuracy
     try {
-        const pos = await getCurrentPosition();
+        const pos = await refinePosition();
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
         // Reverse geocode for display name
