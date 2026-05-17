@@ -3,21 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bergen Weather</title>
+    <title>Yr Weather</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="container">
-    <h2>Bergen, Norway</h2>
-
-    <div class="icon-container">
-        <img id="weather-icon" src="" alt="Weather Icon" width="64">
+    <!-- Header: location + refresh -->
+    <div class="header">
+        <h2 id="location-name">Loading...</h2>
+        <button id="refresh-btn" class="refresh-btn" title="Refresh location">↻</button>
     </div>
 
-    <div class="weather-info">
-        <h1 id="temp">--°C</h1>
-        <p id="description">Loading...</p>
-        <p>Wind: <span id="wind">--</span> m/s</p>
+    <!-- Loading indicator -->
+    <div id="loading" class="loading" style="display:none">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Current conditions -->
+    <div class="current-conditions">
+        <div class="main-weather">
+            <img id="weather-icon" src="icons/01d.png" alt="Weather Icon" width="80" height="80">
+            <div class="temp-block">
+                <h1 id="temp">--°C</h1>
+                <p id="description">Loading...</p>
+            </div>
+        </div>
+
+        <div class="details-grid">
+            <div class="detail-item">
+                <span class="detail-label">Wind</span>
+                <span class="detail-value"><span id="wind">--</span> m/s</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Humidity</span>
+                <span class="detail-value"><span id="humidity">--</span>%</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Clouds</span>
+                <span class="detail-value"><span id="clouds">--</span>%</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Precip (1h)</span>
+                <span class="detail-value"><span id="precip">--</span> mm</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hourly forecast -->
+    <div class="hourly-section">
+        <h3>Next 6 Hours</h3>
+        <div id="hourly-forecast" class="hourly-forecast">
+            <!-- Populated by JS -->
+        </div>
     </div>
 </div>
 

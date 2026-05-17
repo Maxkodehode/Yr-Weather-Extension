@@ -1,23 +1,15 @@
-import { Welcome } from './types.js';
 import { weatherSymbolKeys } from './types.js';
-
 chrome.runtime.onInstalled.addListener(updateToolbarWeather);
 chrome.runtime.onStartup.addListener(updateToolbarWeather);
-
-chrome.alarms.onAlarm.addListener((alarm: chrome.alarms.Alarm) => {
-    if (alarm.name === "weatherUpdate") updateToolbarWeather();
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "weatherUpdate")
+        updateToolbarWeather();
 });
-
-async function getPosition(): Promise<{ lat: number; lon: number } | null> {
+async function getPosition() {
     return new Promise((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-            () => resolve(null),
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-        );
+        navigator.geolocation.getCurrentPosition((pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }), () => resolve(null), { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 });
     });
 }
-
 async function updateToolbarWeather() {
     try {
         const pos = await getPosition();
@@ -25,64 +17,51 @@ async function updateToolbarWeather() {
             console.warn('Geolocation unavailable for background update');
             return;
         }
-
         const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${pos.lat.toFixed(4)}&lon=${pos.lon.toFixed(4)}`;
         const res = await fetch(url, {
             headers: { 'User-Agent': 'YrWeatherExtension/2.0 (maxkodehode@gmail.com)' }
         });
-        const data = (await res.json()) as Welcome;
-
+        const data = (await res.json());
         const temp = Math.round(data.properties.timeseries[0].data.instant.details.air_temperature);
         const symbolCode = data.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
-
-        if (symbolCode) await updateToolbar(symbolCode, temp);
-
+        if (symbolCode)
+            await updateToolbar(symbolCode, temp);
         chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
-    } catch (err) {
+    }
+    catch (err) {
         console.error("Background weather update failed", err);
     }
 }
-
-async function updateToolbar(symbolCode: string, temperature: number) {
+async function updateToolbar(symbolCode, temperature) {
     try {
-        const fileName = (weatherSymbolKeys as Record<string, string>)[symbolCode] || symbolCode;
+        const fileName = weatherSymbolKeys[symbolCode] || symbolCode;
         const iconPath = `icons/${fileName}.png`;
-
         const canvas = new OffscreenCanvas(128, 128);
-        const ctx = canvas.getContext('2d') as OffscreenCanvasRenderingContext2D;
-
-        if (!ctx) return;
-
+        const ctx = canvas.getContext('2d');
+        if (!ctx)
+            return;
         const response = await fetch(chrome.runtime.getURL(iconPath));
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
-
         ctx.clearRect(0, 0, 128, 128);
         ctx.drawImage(imgBitmap, 0, 0, 128, 128);
-
         ctx.fillStyle = "#00FFFF";
         ctx.font = "bold 80px Arial";
         ctx.textAlign = "right";
         ctx.textBaseline = "bottom";
-
         ctx.strokeStyle = "#1A1A1B";
         ctx.lineWidth = 8;
-
         const x = 110;
         const y = 75;
-
         ctx.strokeText(`${temperature}°`, x, y);
         ctx.fillText(`${temperature}°`, x, y);
-
         const imageData = ctx.getImageData(0, 0, 128, 128);
-
         await chrome.action.setIcon({
             imageData: { "128": imageData }
         });
-
         await chrome.action.setBadgeText({ text: "" });
-
-    } catch (err) {
+    }
+    catch (err) {
         console.error("Icon update failed", err);
     }
 }

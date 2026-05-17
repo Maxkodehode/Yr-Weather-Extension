@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Bergen Weather Toolbar",
-  "version": "1.0",
-  "permissions": ["alarms"],
+  "name": "Yr Weather Extension",
+  "version": "2.0",
+  "description": "Weather for your current location, powered by yr.no",
+  "permissions": ["alarms", "geolocation"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "action": {
-    "default_title": "Bergen Weather",
+    "default_title": "Yr Weather",
     "default_icon": "icons/01d.png",
     "default_popup": "popup.html"
   },
@@ -19,8 +20,7 @@
     "128": "icons/icon128.png"
   },
   "host_permissions": [
-    "https://api.met.no/*"
+    "https://api.met.no/*",
+    "https://nominatim.openstreetmap.org/*"
   ]
-  
-  
 }

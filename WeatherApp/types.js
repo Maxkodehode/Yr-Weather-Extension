@@ -1,81 +1,13 @@
-export interface Welcome {
-    type:       string;
-    geometry:   Geometry;
-    properties: Properties;
-}
-
-export interface Geometry {
-    type:        string;
-    coordinates: number[];
-}
-
-export interface Properties {
-    meta:       Meta;
-    timeseries: Timesery[];
-}
-
-export interface Meta {
-    updated_at: Date;
-    units:      Units;
-}
-
-export interface Units {
-    air_pressure_at_sea_level: string;
-    air_temperature:           string;
-    cloud_area_fraction:       string;
-    precipitation_amount:      string;
-    relative_humidity:         string;
-    wind_from_direction:       string;
-    wind_speed:                string;
-}
-
-export interface Timesery {
-    time: Date;
-    data: Data;
-}
-
-export interface Data {
-    instant:        Instant;
-    next_12_hours?: Next12_Hours;
-    next_1_hours?:  NextHours;
-    next_6_hours?:  NextHours;
-}
-
-export interface Instant {
-    details: InstantDetails;
-}
-
-export interface InstantDetails {
-    air_pressure_at_sea_level: number;
-    air_temperature:           number;
-    cloud_area_fraction:       number;
-    relative_humidity:         number;
-    wind_from_direction:       number;
-    wind_speed:                number;
-}
-
-export interface Next12_Hours {
-    summary: Summary;
-    details: Next12_HoursDetails;
-}
-
-export interface Next12_HoursDetails {
-}
-
-export interface Summary {
-    symbol_code: SymbolCode;
-}
-
-export enum SymbolCode {
-    ClearskyDay = "clearsky_day",
-    ClearskyNight = "clearsky_night",
-    Cloudy = "cloudy",
-    FairDay = "fair_day",
-    FairNight = "fair_night",
-    PartlycloudyDay = "partlycloudy_day",
-    PartlycloudyNight = "partlycloudy_night",
-}
-
+export var SymbolCode;
+(function (SymbolCode) {
+    SymbolCode["ClearskyDay"] = "clearsky_day";
+    SymbolCode["ClearskyNight"] = "clearsky_night";
+    SymbolCode["Cloudy"] = "cloudy";
+    SymbolCode["FairDay"] = "fair_day";
+    SymbolCode["FairNight"] = "fair_night";
+    SymbolCode["PartlycloudyDay"] = "partlycloudy_day";
+    SymbolCode["PartlycloudyNight"] = "partlycloudy_night";
+})(SymbolCode || (SymbolCode = {}));
 export const weatherSymbolKeys = {
     clearsky_day: '01d',
     clearsky_night: '01n',
@@ -160,41 +92,4 @@ export const weatherSymbolKeys = {
     heavysleet: '48',
     lightsnow: '49',
     heavysnow: '50',
-} as const;
-
-export interface NextHours {
-    summary: Summary;
-    details: Next1_HoursDetails;
-}
-
-export interface Next1_HoursDetails {
-    precipitation_amount: number;
-}
-
-// Nominatim reverse geocoding response
-export interface NominatimResponse {
-    place_id: number;
-    lat: string;
-    lon: string;
-    display_name: string;
-    address: {
-        neighbourhood?: string;
-        suburb?: string;
-        village?: string;
-        town?: string;
-        city?: string;
-        municipality?: string;
-        county?: string;
-        state?: string;
-        country?: string;
-        [key: string]: string | undefined;
-    };
-}
-
-// Cached location data
-export interface CachedLocation {
-    lat: number;
-    lon: number;
-    name: string;
-    timestamp: number;
-}
+};
