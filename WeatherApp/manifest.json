@@ -3,7 +3,7 @@
   "name": "Yr Weather Extension",
   "version": "2.0",
   "description": "Weather for your current location, powered by yr.no",
-  "permissions": ["alarms", "geolocation"],
+  "permissions": ["alarms", "geolocation", "storage"],
   "background": {
     "service_worker": "background.js",
     "type": "module"

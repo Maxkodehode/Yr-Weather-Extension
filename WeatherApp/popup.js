@@ -198,12 +198,15 @@ async function loadWeatherForPosition(lat, lon, locationName, accuracy) {
         cacheLocation(lat, lon, locationName, accuracy);
         displayAccuracy(accuracy);
         // Send weather data to background so it can update the toolbar icon
+        // and save location for independent background updates
         const symbolCode = weather.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
         const temp = Math.round(weather.properties.timeseries[0].data.instant.details.air_temperature);
         chrome.runtime.sendMessage({
             type: 'UPDATE_TOOLBAR',
             symbolCode,
             temperature: temp,
+            lat,
+            lon,
         });
     }
     catch (err) {

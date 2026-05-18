@@ -1,39 +1,43 @@
 import { weatherSymbolKeys } from './types.js';
 
-chrome.runtime.onInstalled.addListener(updateToolbarWeather);
-chrome.runtime.onStartup.addListener(updateToolbarWeather);
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
+});
+chrome.runtime.onStartup.addListener(() => {
+    chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
+});
 chrome.alarms.onAlarm.addListener((alarm: chrome.alarms.Alarm) => {
     if (alarm.name === "weatherUpdate") updateToolbarWeather();
 });
 
 // Listen for weather data from popup
-chrome.runtime.onMessage.addListener((message: { type: string; symbolCode?: string; temperature?: number }) => {
+chrome.runtime.onMessage.addListener((message: { type: string; symbolCode?: string; temperature?: number; lat?: number; lon?: number }) => {
     if (message.type === 'UPDATE_TOOLBAR' && message.symbolCode && message.temperature !== undefined) {
         const fileName = (weatherSymbolKeys as Record<string, string>)[message.symbolCode] || message.symbolCode;
         const iconPath = `icons/${fileName}.png`;
         updateToolbarIcon(iconPath, message.temperature);
+
+        // Save location so background can fetch independently
+        if (message.lat !== undefined && message.lon !== undefined) {
+            chrome.storage.local.set({
+                lastSymbolCode: message.symbolCode,
+                lastTemperature: message.temperature,
+                lastLat: message.lat,
+                lastLon: message.lon,
+            });
+        }
     }
 });
 
-async function getPosition(): Promise<{ lat: number; lon: number } | null> {
-    return new Promise((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-            () => resolve(null),
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-        );
-    });
-}
-
 async function updateToolbarWeather() {
     try {
-        const pos = await getPosition();
-        if (!pos) {
-            console.warn('Geolocation unavailable for background update');
+        const stored = await chrome.storage.local.get(['lastLat', 'lastLon']) as { lastLat?: number; lastLon?: number };
+        if (!stored.lastLat || !stored.lastLon) {
+            console.warn('No saved location for background update');
             return;
         }
 
-        const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${pos.lat.toFixed(4)}&lon=${pos.lon.toFixed(4)}`;
+        const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${stored.lastLat.toFixed(4)}&lon=${stored.lastLon.toFixed(4)}`;
         const res = await fetch(url, {
             headers: { 'User-Agent': 'YrWeatherExtension/2.0 (maxkodehode@gmail.com)' }
         });
@@ -46,9 +50,13 @@ async function updateToolbarWeather() {
             const fileName = (weatherSymbolKeys as Record<string, string>)[symbolCode] || symbolCode;
             const iconPath = `icons/${fileName}.png`;
             await updateToolbarIcon(iconPath, temp);
-        }
 
-        chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
+            // Update cached values
+            chrome.storage.local.set({
+                lastSymbolCode: symbolCode,
+                lastTemperature: temp,
+            });
+        }
     } catch (err) {
         console.error("Background weather update failed", err);
     }
