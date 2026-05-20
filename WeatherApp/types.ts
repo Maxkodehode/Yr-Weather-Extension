@@ -191,10 +191,10 @@ export interface NominatimResponse {
     };
 }
 
-// User-Agent for MET Norway and Nominatim API requests
-// Replace you@example.com with your own email before building.
+// Contact email for MET Norway and Nominatim API User-Agent headers.
+// Replace with your own email before building.
 // See: https://api.met.no/doc/TermsOfService
-export const USER_AGENT = 'YrWeatherExtension/2.0 you@example.com';
+export const CONTACT_EMAIL = 'you@example.com';
 
 // Cached location data
 export interface CachedLocation {

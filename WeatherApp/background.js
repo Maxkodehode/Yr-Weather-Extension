@@ -1,4 +1,5 @@
-import { weatherSymbolKeys, USER_AGENT } from './types.js';
+import { weatherSymbolKeys, CONTACT_EMAIL } from './types.js';
+const USER_AGENT = `YrWeatherExtension/2.0 ${CONTACT_EMAIL}`;
 chrome.runtime.onInstalled.addListener(() => {
     chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
 });

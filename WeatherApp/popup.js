@@ -1,4 +1,5 @@
-import { weatherSymbolKeys, USER_AGENT } from './types.js';
+import { weatherSymbolKeys, CONTACT_EMAIL } from './types.js';
+const USER_AGENT = `YrWeatherExtension/2.0 ${CONTACT_EMAIL}`;
 const LOCATION_CACHE_KEY = 'yr_cached_location';
 const LOCATION_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 // --- Location helpers ---
