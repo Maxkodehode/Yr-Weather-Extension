@@ -12,6 +12,38 @@ A Chromium browser extension that shows current weather and a 6-hour forecast fo
 - **Toolbar icon overlay** -- draws the current temperature on the extension icon, updated every 15 minutes via a background service worker
 - **Accuracy indicator** -- color-coded badge showing GPS accuracy (green < 50m, yellow < 200m, red >= 200m)
 
+## Quick Start
+
+The easiest way to get started is to run the setup script. It will install dependencies, ask for your email (needed for the weather API), compile the code, and give you instructions for your browser.
+
+### Linux
+
+Open a terminal in the project folder and run:
+
+```bash
+bash setup.sh
+```
+
+### macOS
+
+Open Terminal in the project folder and run:
+
+```bash
+bash setup.sh
+```
+
+If you do not have Node.js, the script will offer to install it via Homebrew or nvm.
+
+### Windows
+
+Double-click `setup_win.bat` in the project folder.
+
+If you do not have Node.js, the script will offer to install it via winget.
+
+---
+
+The setup script handles everything. If you prefer to do things manually, see below.
+
 ## APIs Used
 
 | API | Purpose | URL |
@@ -30,7 +62,7 @@ Use an email address you control. It does not need to be publicly visible, but i
 ### Step 2: Register with MET Norway
 
 1. Visit [https://api.met.no/](https://api.met.no/)
-2. Read the terms of service at [https://api.met.no/conditions_service.html](https://api.met.no/conditions_service.html)
+2. Read the terms of service at [https://api.met.no/doc/TermsOfService](https://api.met.no/doc/TermsOfService)
 3. No account or API key is required -- the User-Agent header with your email **is** your identification
 4. That is it. MET Norway uses the User-Agent to identify and throttle abusive clients. As long as you include a proper User-Agent, you are good to go
 
@@ -55,7 +87,7 @@ Replace `you@example.com` with your actual email. For example:
 export const CONTACT_EMAIL = 'alice@protonmail.com';
 ```
 
-This constant is imported by both `popup.ts` and `background.ts`, which each combine it with the app name to form the full User-Agent header (`YrWeatherExtension/2.0 you@example.com`).
+This constant is imported by both `popup.ts` and `background.ts`, which each combine it with the app name to form the full User-Agent header (`YrWeatherExtension/2.0 alice@protonmail.com`).
 
 After editing, recompile with `npx tsc` (see Development section below).
 
@@ -63,18 +95,25 @@ After editing, recompile with `npx tsc` (see Development section below).
 
 ```
 Yr-Weather-Extension/
+  setup.sh                  # Launcher script for Linux/macOS
+  setup_win.bat             # Launcher script for Windows (double-click)
+  scripts/
+    setup_linux.sh          # Linux setup
+    setup_mac.sh            # macOS setup
+    setup_win.ps1           # Windows setup
   WeatherApp/
-    manifest.json        -- Extension manifest (Manifest V3)
-    popup.html           -- Popup UI
-    popup.ts             -- Popup logic (location, weather fetch, rendering)
-    popup.js             -- Compiled popup.ts
-    background.ts        -- Background service worker (15-min icon updates)
-    background.js        -- Compiled background.ts
-    types.ts             -- TypeScript interfaces + USER_AGENT constant
-    styles.css           -- Popup styles (dark theme)
-    icons/               -- Weather symbol icons (PNG)
-  package.json           -- Dev dependencies (@types/chrome, typescript)
-  tsconfig.json          -- TypeScript config
+    manifest.json           # Extension manifest (Manifest V3)
+    popup.html              # Popup UI
+    popup.ts                # Popup logic (location, weather fetch, rendering)
+    popup.js                # Compiled popup.ts
+    background.ts           # Background service worker (15-min icon updates)
+    background.js           # Compiled background.ts
+    types.ts                # TypeScript interfaces + CONTACT_EMAIL constant
+    styles.css              # Popup styles (dark theme)
+    icons/                  # Weather symbol icons (PNG)
+  package.json              # Dev dependencies (@types/chrome, typescript)
+  tsconfig.json             # TypeScript config
+  README.md                 # This file
 ```
 
 ## Development
@@ -82,9 +121,9 @@ Yr-Weather-Extension/
 ### Prerequisites
 
 - Node.js (for TypeScript compilation)
-- A Chromium-based browser (Brave, Chrome, Edge, etc.)
+- A Chromium-based browser (Brave, Chrome, Edge, Opera, Vivaldi, Arc, etc.)
 
-### Setup
+### Manual Setup
 
 1. Install dependencies:
 
@@ -108,15 +147,18 @@ Yr-Weather-Extension/
 
 ### Loading the Extension
 
-1. Open your browser and navigate to `chrome://extensions`
-2. Enable **Developer mode** (toggle in the top-right corner)
-3. Click **Load unpacked**
-4. Select the `WeatherApp/` directory
-5. The extension icon should appear in your toolbar
+The setup script will give you browser-specific instructions. The general steps are:
+
+1. Open your browser
+2. Navigate to the extensions page (e.g. `chrome://extensions` for Chrome)
+3. Enable **Developer mode** (look for a toggle switch)
+4. Click **Load unpacked**
+5. Select the `WeatherApp/` directory
+6. The Yr Weather icon should appear in your toolbar
 
 ### Making Changes
 
-After editing `.ts` files, recompile with `npx tsc`, then click the refresh button on the extension card in `chrome://extensions` to reload.
+After editing `.ts` files, recompile with `npx tsc`, then click the refresh icon on the extension card in your browser's extensions page.
 
 ## Permissions
 

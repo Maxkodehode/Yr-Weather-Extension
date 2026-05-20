@@ -194,7 +194,7 @@ export interface NominatimResponse {
 // Contact email for MET Norway and Nominatim API User-Agent headers.
 // Replace with your own email before building.
 // See: https://api.met.no/doc/TermsOfService
-export const CONTACT_EMAIL = 'you@example.com';
+export const CONTACT_EMAIL = 'maxkodehode@gmail.com';
 
 // Cached location data
 export interface CachedLocation {
