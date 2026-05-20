@@ -191,6 +191,11 @@ export interface NominatimResponse {
     };
 }
 
+// User-Agent for MET Norway API requests
+// Replace <your-email@example.com> with your own email before building.
+// See: https://api.met.no/conditions_service.html
+export const USER_AGENT = 'YrWeatherExtension/2.0 (<your-email@example.com>)';
+
 // Cached location data
 export interface CachedLocation {
     lat: number;

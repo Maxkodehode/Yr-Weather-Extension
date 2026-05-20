@@ -1,4 +1,4 @@
-import { Welcome, weatherSymbolKeys, NominatimResponse, CachedLocation } from './types.js';
+import { Welcome, weatherSymbolKeys, NominatimResponse, CachedLocation, USER_AGENT } from './types.js';
 
 const LOCATION_CACHE_KEY = 'yr_cached_location';
 const LOCATION_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
@@ -106,7 +106,7 @@ function refinePosition(sampleIntervalMs: number = 3000, maxDurationMs: number =
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
     const res = await fetch(url, {
-        headers: { 'User-Agent': 'YrWeatherExtension/2.0' }
+        headers: { 'User-Agent': USER_AGENT }
     });
     if (!res.ok) throw new Error('Geocoding failed');
     const data = await res.json() as NominatimResponse;
@@ -127,7 +127,7 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
 async function fetchWeather(lat: number, lon: number): Promise<Welcome> {
     const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`;
     const res = await fetch(url, {
-        headers: { 'User-Agent': 'YrWeatherExtension/2.0 (maxkodehode@gmail.com)' }
+        headers: { 'User-Agent': USER_AGENT }
     });
     if (!res.ok) throw new Error('Weather fetch failed');
     return (await res.json()) as Welcome;

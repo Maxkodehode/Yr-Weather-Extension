@@ -12,37 +12,52 @@ A Chromium browser extension that shows current weather and a 6-hour forecast fo
 - **Toolbar icon overlay** -- draws the current temperature on the extension icon, updated every 15 minutes via a background service worker
 - **Accuracy indicator** -- color-coded badge showing GPS accuracy (green < 50m, yellow < 200m, red >= 200m)
 
-## Screenshots
-
-The popup is 380px wide with a dark theme, showing current conditions at the top and an hourly forecast below.
-
 ## APIs Used
 
 | API | Purpose | URL |
 |-----|---------|-----|
-| MET Norway Locationforecast | Weather data | `https://api.met.no/weatherapi/locationforecast/2.0/compact` |
+| MET Norway Locationforecast 2.0 Compact | Weather data | `https://api.met.no/weatherapi/locationforecast/2.0/compact` |
 | Nominatim (OpenStreetMap) | Reverse geocoding | `https://nominatim.openstreetmap.org/reverse` |
 
-### Important: Yr.no / MET Norway API User-Agent
+## Setting Up Your API User-Agent
 
-MET Norway requires all requests to include a descriptive `User-Agent` header with a contact email. **The code currently contains the developer's personal email address.** Before using or distributing this extension, you **must** replace the email with your own.
+Both MET Norway and OpenStreetMap Nominatim require all API requests to include a `User-Agent` header with a valid contact email. This is not optional -- it is a condition of use for both services.
 
-Search for `maxkodehode@gmail.com` in the following files and replace it with your own email:
+### Step 1: Choose an email address
 
-- `WeatherApp/popup.ts` (line 130)
-- `WeatherApp/background.ts` (line 42)
+Use an email address you control. It does not need to be publicly visible, but it must be valid so the API operators can contact you if your usage causes problems.
 
-Example replacement:
+### Step 2: Register with MET Norway
+
+1. Visit [https://api.met.no/](https://api.met.no/)
+2. Read the terms of service at [https://api.met.no/conditions_service.html](https://api.met.no/conditions_service.html)
+3. No account or API key is required -- the User-Agent header with your email **is** your identification
+4. That is it. MET Norway uses the User-Agent to identify and throttle abusive clients. As long as you include a proper User-Agent, you are good to go
+
+### Step 3: Register with Nominatim (OpenStreetMap)
+
+1. Visit [https://nominatim.org/](https://nominatim.org/)
+2. Read the usage policy at [https://operations.osmfoundation.org/policies/nominatim/](https://operations.osmfoundation.org/policies/nominatim/)
+3. For light usage (single user, low request volume like this extension), no account is required -- the User-Agent header is sufficient
+4. If you plan to distribute the extension widely or make heavy use, consider setting up your own Nominatim instance or creating an account
+
+### Step 4: Set your email in the code
+
+There is exactly **one place** to set your email: `WeatherApp/types.ts`, at the top of the file:
 
 ```typescript
-// Before
-headers: { 'User-Agent': 'YrWeatherExtension/2.0 (maxkodehode@gmail.com)' }
-
-// After (use your own email)
-headers: { 'User-Agent': 'YrWeatherExtension/2.0 (you@example.com)' }
+export const USER_AGENT = 'YrWeatherExtension/2.0 (<your-email@example.com>)';
 ```
 
-Failing to set a proper User-Agent with a valid contact email violates the [MET Norway API terms of service](https://api.met.no/conditions_service.html) and may result in your requests being blocked.
+Replace `<your-email@example.com>` with your actual email. For example:
+
+```typescript
+export const USER_AGENT = 'YrWeatherExtension/2.0 (alice@protonmail.com)';
+```
+
+This constant is imported by both `popup.ts` and `background.ts`, so all API requests (weather data and geocoding) will use it automatically.
+
+After editing, recompile with `npx tsc` (see Development section below).
 
 ## Project Structure
 
@@ -52,13 +67,13 @@ Yr-Weather-Extension/
     manifest.json        -- Extension manifest (Manifest V3)
     popup.html           -- Popup UI
     popup.ts             -- Popup logic (location, weather fetch, rendering)
-    popup.js             -- Compiled popup.js
+    popup.js             -- Compiled popup.ts
     background.ts        -- Background service worker (15-min icon updates)
-    background.js        -- Compiled background.js
-    types.ts             -- TypeScript interfaces for API responses
+    background.js        -- Compiled background.ts
+    types.ts             -- TypeScript interfaces + USER_AGENT constant
     styles.css           -- Popup styles (dark theme)
     icons/               -- Weather symbol icons (PNG)
-  package.json           -- Dev dependencies (@types/chrome)
+  package.json           -- Dev dependencies (@types/chrome, typescript)
   tsconfig.json          -- TypeScript config
 ```
 
@@ -77,7 +92,7 @@ Yr-Weather-Extension/
    npm install
    ```
 
-2. Replace the email address in `WeatherApp/popup.ts` and `WeatherApp/background.ts` with your own (see section above).
+2. **Set your email** in `WeatherApp/types.ts` (see "Setting Up Your API User-Agent" above).
 
 3. Compile TypeScript:
 

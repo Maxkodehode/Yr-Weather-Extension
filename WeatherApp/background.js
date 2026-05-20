@@ -1,4 +1,4 @@
-import { weatherSymbolKeys } from './types.js';
+import { weatherSymbolKeys, USER_AGENT } from './types.js';
 chrome.runtime.onInstalled.addListener(() => {
     chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
 });
@@ -35,7 +35,7 @@ async function updateToolbarWeather() {
         }
         const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${stored.lastLat.toFixed(4)}&lon=${stored.lastLon.toFixed(4)}`;
         const res = await fetch(url, {
-            headers: { 'User-Agent': 'YrWeatherExtension/2.0 (maxkodehode@gmail.com)' }
+            headers: { 'User-Agent': USER_AGENT }
         });
         const data = await res.json();
         const temp = Math.round(data.properties.timeseries[0].data.instant.details.air_temperature);
