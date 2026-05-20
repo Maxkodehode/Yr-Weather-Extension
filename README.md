@@ -12,9 +12,11 @@ A Chromium browser extension that shows current weather and a 6-hour forecast fo
 - **Toolbar icon overlay** -- draws the current temperature on the extension icon, updated every 15 minutes via a background service worker
 - **Accuracy indicator** -- color-coded badge showing GPS accuracy (green < 50m, yellow < 200m, red >= 200m)
 
-## Quick Start
+---
 
-The easiest way to get started is to run the setup script. It will install dependencies, ask for your email (needed for the weather API), compile the code, and give you instructions for your browser.
+## Quick Start (Setup Script)
+
+The easiest way to get started. The script will install dependencies, ask for your email (required by the weather API), compile the code, and give you instructions for your browser.
 
 ### Linux
 
@@ -32,17 +34,91 @@ Open Terminal in the project folder and run:
 bash setup.sh
 ```
 
-If you do not have Node.js, the script will offer to install it via Homebrew or nvm.
-
 ### Windows
 
 Double-click `setup_win.bat` in the project folder.
 
-If you do not have Node.js, the script will offer to install it via winget.
-
 ---
 
-The setup script handles everything. If you prefer to do things manually, see below.
+## Manual Setup
+
+If you prefer to set things up yourself, follow these steps.
+
+### 1. Install Node.js
+
+You need Node.js to compile the TypeScript code. Check if you have it:
+
+```bash
+node --version
+```
+
+If it is not installed:
+
+- **Linux:** Use your package manager (`apt`, `dnf`, `pacman`, etc.) or install [nvm](https://github.com/nvm-sh/nvm)
+- **macOS:** `brew install node` or install [nvm](https://github.com/nvm-sh/nvm)
+- **Windows:** Install from [nodejs.org](https://nodejs.org/en/download/) or use `winget install OpenJS.NodeJS.LTS`
+
+### 2. Set Your Contact Email
+
+The weather APIs require a contact email in the User-Agent header. Open `WeatherApp/types.ts` and change this line:
+
+```typescript
+export const CONTACT_EMAIL = 'you@example.com';
+```
+
+Replace `you@example.com` with your own email. For example:
+
+```typescript
+export const CONTACT_EMAIL = 'alice@protonmail.com';
+```
+
+That is all the "registration" needed. There is no account to create or sign-up page to visit. The email in the User-Agent header is how the API operators identify you. See the [MET Norway terms](https://api.met.no/doc/TermsOfService) and [Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/) for details.
+
+### 3. Install Dependencies
+
+```bash
+npm install
+```
+
+### 4. Compile TypeScript
+
+```bash
+npx tsc
+```
+
+This produces `popup.js`, `background.js`, and `types.js` inside `WeatherApp/`.
+
+### 5. Load the Extension in Your Browser
+
+This extension works with any Chromium-based browser:
+
+| Browser | Extensions URL | Developer mode toggle |
+|---------|---------------|----------------------|
+| Google Chrome | `chrome://extensions` | Top-right |
+| Brave | `brave://extensions` | Top-right |
+| Microsoft Edge | `edge://extensions` | Bottom-left |
+| Opera | `opera://extensions` | Top-right |
+| Vivaldi | `vivaldi://extensions` | Top-left |
+
+Steps are the same for all of them:
+
+1. Navigate to the extensions URL for your browser
+2. Enable **Developer mode**
+3. Click **Load unpacked**
+4. Select the `WeatherApp/` directory
+5. The Yr Weather icon should appear in your toolbar
+
+### 6. Reload After Changes
+
+After editing `.ts` files:
+
+```bash
+npx tsc
+```
+
+Then click the refresh icon on the extension card in your browser's extensions page.
+
+---
 
 ## APIs Used
 
@@ -51,52 +127,12 @@ The setup script handles everything. If you prefer to do things manually, see be
 | MET Norway Locationforecast 2.0 Compact | Weather data | `https://api.met.no/weatherapi/locationforecast/2.0/compact` |
 | Nominatim (OpenStreetMap) | Reverse geocoding | `https://nominatim.openstreetmap.org/reverse` |
 
-## Setting Up Your API User-Agent
-
-Both MET Norway and OpenStreetMap Nominatim require all API requests to include a `User-Agent` header with a valid contact email. This is not optional -- it is a condition of use for both services.
-
-### Step 1: Choose an email address
-
-Use an email address you control. It does not need to be publicly visible, but it must be valid so the API operators can contact you if your usage causes problems.
-
-### Step 2: Register with MET Norway
-
-1. Visit [https://api.met.no/](https://api.met.no/)
-2. Read the terms of service at [https://api.met.no/doc/TermsOfService](https://api.met.no/doc/TermsOfService)
-3. No account or API key is required -- the User-Agent header with your email **is** your identification
-4. That is it. MET Norway uses the User-Agent to identify and throttle abusive clients. As long as you include a proper User-Agent, you are good to go
-
-### Step 3: Register with Nominatim (OpenStreetMap)
-
-1. Visit [https://nominatim.org/](https://nominatim.org/)
-2. Read the usage policy at [https://operations.osmfoundation.org/policies/nominatim/](https://operations.osmfoundation.org/policies/nominatim/)
-3. For light usage (single user, low request volume like this extension), no account is required -- the User-Agent header is sufficient
-4. If you plan to distribute the extension widely or make heavy use, consider setting up your own Nominatim instance or creating an account
-
-### Step 4: Set your email in the code
-
-There is exactly **one place** to set your email: `WeatherApp/types.ts`:
-
-```typescript
-export const CONTACT_EMAIL = 'you@example.com';
-```
-
-Replace `you@example.com` with your actual email. For example:
-
-```typescript
-export const CONTACT_EMAIL = 'alice@protonmail.com';
-```
-
-This constant is imported by both `popup.ts` and `background.ts`, which each combine it with the app name to form the full User-Agent header (`YrWeatherExtension/2.0 alice@protonmail.com`).
-
-After editing, recompile with `npx tsc` (see Development section below).
-
 ## Project Structure
 
 ```
 Yr-Weather-Extension/
-  setup.sh                  # Launcher script for Linux/macOS
-  setup_win.bat             # Launcher script for Windows (double-click)
+  setup.sh                  # Setup launcher for Linux/macOS
+  setup_win.bat             # Setup launcher for Windows (double-click)
   scripts/
     setup_linux.sh          # Linux setup
     setup_mac.sh            # macOS setup
@@ -115,50 +151,6 @@ Yr-Weather-Extension/
   tsconfig.json             # TypeScript config
   README.md                 # This file
 ```
-
-## Development
-
-### Prerequisites
-
-- Node.js (for TypeScript compilation)
-- A Chromium-based browser (Brave, Chrome, Edge, Opera, Vivaldi, Arc, etc.)
-
-### Manual Setup
-
-1. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
-2. **Set your email** in `WeatherApp/types.ts` (see "Setting Up Your API User-Agent" above).
-
-3. Compile TypeScript:
-
-   ```bash
-   npx tsc
-   ```
-
-   Or with watch mode during development:
-
-   ```bash
-   npx tsc --watch
-   ```
-
-### Loading the Extension
-
-The setup script will give you browser-specific instructions. The general steps are:
-
-1. Open your browser
-2. Navigate to the extensions page (e.g. `chrome://extensions` for Chrome)
-3. Enable **Developer mode** (look for a toggle switch)
-4. Click **Load unpacked**
-5. Select the `WeatherApp/` directory
-6. The Yr Weather icon should appear in your toolbar
-
-### Making Changes
-
-After editing `.ts` files, recompile with `npx tsc`, then click the refresh icon on the extension card in your browser's extensions page.
 
 ## Permissions
 
