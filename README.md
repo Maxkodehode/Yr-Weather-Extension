@@ -46,13 +46,13 @@ Use an email address you control. It does not need to be publicly visible, but i
 There is exactly **one place** to set your email: `WeatherApp/types.ts`, at the top of the file:
 
 ```typescript
-export const USER_AGENT = 'YrWeatherExtension/2.0 (<your-email@example.com>)';
+export const USER_AGENT = 'YrWeatherExtension/2.0 you@example.com';
 ```
 
-Replace `<your-email@example.com>` with your actual email. For example:
+Replace `you@example.com` with your actual email. For example:
 
 ```typescript
-export const USER_AGENT = 'YrWeatherExtension/2.0 (alice@protonmail.com)';
+export const USER_AGENT = 'YrWeatherExtension/2.0 alice@protonmail.com';
 ```
 
 This constant is imported by both `popup.ts` and `background.ts`, so all API requests (weather data and geocoding) will use it automatically.
