@@ -275,10 +275,25 @@ async function initExtension() {
         }
     }
 }
-// Refresh button
-document.getElementById('refresh-btn').addEventListener('click', () => {
-    // Clear cache and re-fetch
-    localStorage.removeItem(LOCATION_CACHE_KEY);
-    initExtension();
+// Refresh button — re-fetch weather for the last known location
+document.getElementById('refresh-btn').addEventListener('click', async () => {
+    const cached = getCachedLocation();
+    if (cached) {
+        setLoading(true);
+        try {
+            await loadWeatherForPosition(cached.lat, cached.lon, cached.name, cached.accuracy);
+        }
+        catch {
+            showError('Failed to refresh weather data');
+        }
+        finally {
+            setLoading(false);
+        }
+    }
+    else {
+        // No cached location — fall back to full re-init
+        localStorage.removeItem(LOCATION_CACHE_KEY);
+        initExtension();
+    }
 });
 initExtension();
