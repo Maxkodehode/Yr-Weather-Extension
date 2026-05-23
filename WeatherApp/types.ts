@@ -50,7 +50,6 @@ export interface InstantDetails {
     air_temperature:           number;
     cloud_area_fraction:       number;
     relative_humidity:         number;
-    dew_point_temperature:     number;
     wind_from_direction:       number;
     wind_speed:                number;
 }

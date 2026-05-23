@@ -111,6 +111,14 @@ async function reverseGeocode(lat, lon) {
     return data.display_name.split(',').slice(0, 2).join(',');
 }
 // --- Weather helpers ---
+// Calculate dew point from temperature (°C) and relative humidity (%)
+// using the Magnus formula.
+function calculateDewPoint(tempC, rh) {
+    const a = 17.27;
+    const b = 237.7;
+    const alpha = (a * tempC) / (b + tempC) + Math.log(rh / 100);
+    return (b * alpha) / (a - alpha);
+}
 async function fetchWeather(lat, lon) {
     const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`;
     const res = await fetch(url, {
@@ -136,7 +144,7 @@ function renderCurrent(data, locationName) {
     const temp = Math.round(instant.air_temperature);
     const wind = instant.wind_speed;
     const clouds = instant.cloud_area_fraction;
-    const dewPoint = instant.dew_point_temperature;
+    const dewPoint = calculateDewPoint(instant.air_temperature, instant.relative_humidity);
     const symbolCode = data.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
     const precip = data.properties.timeseries[0].data.next_1_hours?.details.precipitation_amount ?? 0;
     const descEl = document.getElementById('description');
