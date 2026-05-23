@@ -152,15 +152,15 @@ function renderCurrent(data: Welcome, locationName: string) {
     const instant = data.properties.timeseries[0].data.instant.details;
     const temp = Math.round(instant.air_temperature);
     const wind = instant.wind_speed;
-    const humidity = instant.relative_humidity;
     const clouds = instant.cloud_area_fraction;
+    const dewPoint = instant.dew_point_temperature;
     const symbolCode = data.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
     const precip = data.properties.timeseries[0].data.next_1_hours?.details.precipitation_amount ?? 0;
 
     const descEl = document.getElementById('description')!;
     const tempEl = document.getElementById('temp')!;
     const windEl = document.getElementById('wind')!;
-    const humidityEl = document.getElementById('humidity')!;
+    const dewPointEl = document.getElementById('dew-point')!;
     const cloudsEl = document.getElementById('clouds')!;
     const precipEl = document.getElementById('precip')!;
     const iconImg = document.getElementById('weather-icon') as HTMLImageElement;
@@ -169,7 +169,7 @@ function renderCurrent(data: Welcome, locationName: string) {
     locEl.textContent = locationName;
     tempEl.textContent = `${temp}°C`;
     windEl.textContent = `${wind} m/s`;
-    humidityEl.textContent = `${humidity}%`;
+    dewPointEl.textContent = `${Math.round(dewPoint)}°C`;
     cloudsEl.textContent = `${clouds}%`;
     precipEl.textContent = `${precip.toFixed(1)} mm`;
 
