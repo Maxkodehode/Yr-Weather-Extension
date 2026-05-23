@@ -129,8 +129,10 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
 // Calculate dew point from temperature (°C) and relative humidity (%)
 // using the Magnus formula.
 function calculateDewPoint(tempC: number, rh: number): number {
-    const a = 17.27;
-    const b = 237.7;
+    // Magnus-Tetens formula with Sonntag (1990) constants
+    // Valid for 0°C to 50°C, accuracy ±0.3°C
+    const a = 17.625;
+    const b = 243.04;
     const alpha = (a * tempC) / (b + tempC) + Math.log(rh / 100);
     return (b * alpha) / (a - alpha);
 }
@@ -178,7 +180,7 @@ function renderCurrent(data: Welcome, locationName: string) {
     locEl.textContent = locationName;
     tempEl.textContent = `${temp}°C`;
     windEl.textContent = `${wind} m/s`;
-    dewPointEl.textContent = `${Math.round(dewPoint)}°C`;
+    dewPointEl.textContent = `${dewPoint.toFixed(1)}°C`;
     cloudsEl.textContent = `${clouds}%`;
     precipEl.textContent = `${precip.toFixed(1)} mm`;
 
