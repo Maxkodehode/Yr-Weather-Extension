@@ -4,7 +4,7 @@ A Chromium browser extension that shows current weather and a 6-hour forecast fo
 
 ## Features
 
-- **Current conditions** -- temperature, wind speed, dew point, cloud cover, and precipitation
+- **Current conditions** -- temperature, wind speed, dew point depression (T - dew point), cloud cover, and precipitation
 - **6-hour hourly forecast** -- temperature, weather icon, and precipitation for each hour
 - **Location by GPS** -- uses browser geolocation with accuracy refinement (samples over time for best fix)
 - **Reverse geocoding** -- displays a human-readable location name (neighborhood, city) via OpenStreetMap Nominatim

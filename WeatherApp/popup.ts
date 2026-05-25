@@ -165,6 +165,7 @@ function renderCurrent(data: Welcome, locationName: string) {
     const wind = instant.wind_speed;
     const clouds = instant.cloud_area_fraction;
     const dewPoint = calculateDewPoint(instant.air_temperature, instant.relative_humidity);
+    const dewPointDepression = temp - dewPoint; // how far temp is above dew point (negative = supersaturated)
     const symbolCode = data.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
     const precip = data.properties.timeseries[0].data.next_1_hours?.details.precipitation_amount ?? 0;
 
@@ -180,7 +181,7 @@ function renderCurrent(data: Welcome, locationName: string) {
     locEl.textContent = locationName;
     tempEl.textContent = `${temp}°C`;
     windEl.textContent = `${wind} m/s`;
-    dewPointEl.textContent = `${dewPoint.toFixed(1)}°C`;
+    dewPointEl.textContent = `${dewPointDepression.toFixed(1)}°`;
     cloudsEl.textContent = `${clouds}%`;
     precipEl.textContent = `${precip.toFixed(1)} mm`;
 
