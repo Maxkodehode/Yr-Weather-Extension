@@ -15,6 +15,18 @@
         <button id="refresh-btn" class="refresh-btn" title="Refresh location">↻</button>
     </div>
 
+    <!-- Location selector (manual override) -->
+    <div class="location-selector">
+        <select id="location-select" title="Select location">
+            <option value="auto">Auto-detect</option>
+            <option value="florida">Bergen - Florida</option>
+            <option value="sentrum">Bergen - Sentrum</option>
+        </select>
+    </div>
+
+    <!-- Debug: raw geolocation info -->
+    <div id="geo-debug" class="geo-debug" style="display:none"></div>
+
     <!-- Loading indicator -->
     <div id="loading" class="loading" style="display:none">
         <div class="spinner"></div>

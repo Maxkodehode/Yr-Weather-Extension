@@ -271,7 +271,44 @@ function setLoading(loading: boolean) {
     if (loader) loader.style.display = loading ? 'block' : 'none';
 }
 
-// --- Main ---
+// --- Manual location override ---
+
+const MANUAL_LOCATION_KEY = 'yr_manual_location';
+
+function getManualLocation(): KnownLocation | null {
+    const val = localStorage.getItem(MANUAL_LOCATION_KEY);
+    if (!val || val === 'auto') return null;
+    const found = KNOWN_LOCATIONS.find(l => l.name.toLowerCase().includes(val));
+    return found || null;
+}
+
+function setManualLocation(key: string) {
+    localStorage.setItem(MANUAL_LOCATION_KEY, key);
+}
+
+// --- Geo debug display ---
+
+function showGeoDebug(pos: GeolocationPosition | null, snapped: KnownLocation | null, manual: boolean) {
+    const el = document.getElementById('geo-debug');
+    if (!el) return;
+    el.style.display = 'block';
+
+    if (manual) {
+        el.textContent = `Manual: ${snapped?.name || 'unknown'} | API: ${snapped?.lat}, ${snapped?.lon} alt=${snapped?.altitude}m`;
+        return;
+    }
+
+    if (!pos) {
+        el.textContent = 'Geolocation failed';
+        return;
+    }
+
+    const rawLat = pos.coords.latitude.toFixed(4);
+    const rawLon = pos.coords.longitude.toFixed(4);
+    const acc = Math.round(pos.coords.accuracy);
+    const snappedName = snapped ? snapped.name : 'none (using raw)';
+    el.textContent = `Raw: ${rawLat}, ${rawLon} ±${acc}m → Snapped: ${snappedName}`;
+}
 
 async function loadWeatherForPosition(lat: number, lon: number, locationName: string, accuracy: number, altitude?: number) {
     setLoading(true);
@@ -311,6 +348,14 @@ async function initExtension() {
         // Refresh in background
     }
 
+    // Check for manual location override
+    const manualLocation = getManualLocation();
+    if (manualLocation) {
+        await loadWeatherForPosition(manualLocation.lat, manualLocation.lon, manualLocation.name, 0, manualLocation.altitude);
+        showGeoDebug(null, manualLocation, true);
+        return;
+    }
+
     // Get fresh location — sample over time for best accuracy
     try {
         const pos = await refinePosition();
@@ -334,6 +379,7 @@ async function initExtension() {
             }
         }
 
+        showGeoDebug(pos, snapped, false);
         await loadWeatherForPosition(lat, lon, locationName, accuracy, altitude);
     } catch (err) {
         console.error('Geolocation failed:', err);
@@ -374,5 +420,25 @@ document.getElementById('refresh-btn')!.addEventListener('click', async () => {
         initExtension();
     }
 });
+
+// Location selector change
+document.getElementById('location-select')!.addEventListener('change', (e) => {
+    const val = (e.target as HTMLSelectElement).value;
+    setManualLocation(val);
+    if (val === 'auto') {
+        localStorage.removeItem(MANUAL_LOCATION_KEY);
+        localStorage.removeItem(LOCATION_CACHE_KEY);
+    }
+    initExtension();
+});
+
+// Set initial dropdown value from saved preference
+const saved = localStorage.getItem(MANUAL_LOCATION_KEY);
+if (saved && saved !== 'auto') {
+    const sel = document.getElementById('location-select') as HTMLSelectElement;
+    // Match by checking if the saved value is contained in any known location name
+    const match = KNOWN_LOCATIONS.find(l => l.name.toLowerCase().includes(saved));
+    if (match) sel.value = saved;
+}
 
 initExtension();
