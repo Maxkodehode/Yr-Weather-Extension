@@ -203,4 +203,5 @@ export interface CachedLocation {
     name: string;
     timestamp: number;
     accuracy: number;
+    altitude?: number;
 }

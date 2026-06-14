@@ -5,7 +5,46 @@ const USER_AGENT = `YrWeatherExtension/2.0 ${CONTACT_EMAIL}`;
 const LOCATION_CACHE_KEY = 'yr_cached_location';
 const LOCATION_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
-// --- Location helpers ---
+// --- Known locations (snap-to stations) ---
+
+interface KnownLocation {
+    name: string;
+    lat: number;
+    lon: number;
+    altitude: number; // meters above sea level
+}
+
+const KNOWN_LOCATIONS: KnownLocation[] = [
+    { name: 'Bergen - Florida', lat: 60.3833, lon: 5.3333, altitude: 12 },
+    { name: 'Bergen - Sentrum', lat: 60.3913, lon: 5.3221, altitude: 4 },
+];
+
+const SNAP_RADIUS_METERS = 2000; // snap if within 2 km of a known location
+
+// Haversine distance in meters between two lat/lon points
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371000; // Earth radius in meters
+    const toRad = (deg: number) => deg * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Find the nearest known location within snap radius, or return null
+function snapToKnownLocation(lat: number, lon: number): KnownLocation | null {
+    let best: KnownLocation | null = null;
+    let bestDist = SNAP_RADIUS_METERS;
+    for (const loc of KNOWN_LOCATIONS) {
+        const d = haversineDistance(lat, lon, loc.lat, loc.lon);
+        if (d < bestDist) {
+            bestDist = d;
+            best = loc;
+        }
+    }
+    return best;
+}
 
 function getCachedLocation(): CachedLocation | null {
     try {
@@ -19,8 +58,8 @@ function getCachedLocation(): CachedLocation | null {
     }
 }
 
-function cacheLocation(lat: number, lon: number, name: string, accuracy: number) {
-    const cached: CachedLocation = { lat, lon, name, timestamp: Date.now(), accuracy };
+function cacheLocation(lat: number, lon: number, name: string, accuracy: number, altitude?: number) {
+    const cached: CachedLocation = { lat, lon, name, timestamp: Date.now(), accuracy, altitude };
     localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify(cached));
 }
 
@@ -137,8 +176,11 @@ function calculateDewPoint(tempC: number, rh: number): number {
     return (b * alpha) / (a - alpha);
 }
 
-async function fetchWeather(lat: number, lon: number): Promise<Welcome> {
-    const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`;
+async function fetchWeather(lat: number, lon: number, altitude?: number): Promise<Welcome> {
+    let url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`;
+    if (altitude !== undefined) {
+        url += `&altitude=${altitude}`;
+    }
     const res = await fetch(url, {
         headers: { 'User-Agent': USER_AGENT }
     });
@@ -231,10 +273,10 @@ function setLoading(loading: boolean) {
 
 // --- Main ---
 
-async function loadWeatherForPosition(lat: number, lon: number, locationName: string, accuracy: number) {
+async function loadWeatherForPosition(lat: number, lon: number, locationName: string, accuracy: number, altitude?: number) {
     setLoading(true);
     try {
-        const weather = await fetchWeather(lat, lon);
+        const weather = await fetchWeather(lat, lon, altitude);
         renderCurrent(weather, locationName);
         renderHourly(weather);
         cacheLocation(lat, lon, locationName, accuracy);
@@ -250,6 +292,7 @@ async function loadWeatherForPosition(lat: number, lon: number, locationName: st
             temperature: temp,
             lat,
             lon,
+            altitude,
         });
     } catch (err) {
         console.error('Weather load failed:', err);
@@ -263,7 +306,7 @@ async function initExtension() {
     // Try cached location first for instant display
     const cached = getCachedLocation();
     if (cached) {
-        renderCurrent(await fetchWeather(cached.lat, cached.lon).catch(() => null as any), cached.name);
+        renderCurrent(await fetchWeather(cached.lat, cached.lon, cached.altitude).catch(() => null as any), cached.name);
         if (cached.accuracy) displayAccuracy(cached.accuracy);
         // Refresh in background
     }
@@ -271,19 +314,27 @@ async function initExtension() {
     // Get fresh location — sample over time for best accuracy
     try {
         const pos = await refinePosition();
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
+        const rawLat = pos.coords.latitude;
+        const rawLon = pos.coords.longitude;
         const accuracy = pos.coords.accuracy;
 
-        // Reverse geocode for display name
-        let locationName = 'Current Location';
-        try {
-            locationName = await reverseGeocode(lat, lon);
-        } catch (e) {
-            console.warn('Geocoding failed, using fallback name');
+        // Snap to nearest known location if within range
+        const snapped = snapToKnownLocation(rawLat, rawLon);
+        const lat = snapped ? snapped.lat : rawLat;
+        const lon = snapped ? snapped.lon : rawLon;
+        const altitude = snapped ? snapped.altitude : undefined;
+
+        // Reverse geocode for display name (use snapped location name if available)
+        let locationName = snapped ? snapped.name : 'Current Location';
+        if (!snapped) {
+            try {
+                locationName = await reverseGeocode(lat, lon);
+            } catch (e) {
+                console.warn('Geocoding failed, using fallback name');
+            }
         }
 
-        await loadWeatherForPosition(lat, lon, locationName, accuracy);
+        await loadWeatherForPosition(lat, lon, locationName, accuracy, altitude);
     } catch (err) {
         console.error('Geolocation failed:', err);
 
@@ -291,7 +342,7 @@ async function initExtension() {
         if (cached) {
             setLoading(true);
             try {
-                const weather = await fetchWeather(cached.lat, cached.lon);
+                const weather = await fetchWeather(cached.lat, cached.lon, cached.altitude);
                 renderCurrent(weather, cached.name + ' (cached)');
                 renderHourly(weather);
             } catch {
@@ -311,7 +362,7 @@ document.getElementById('refresh-btn')!.addEventListener('click', async () => {
     if (cached) {
         setLoading(true);
         try {
-            await loadWeatherForPosition(cached.lat, cached.lon, cached.name, cached.accuracy);
+            await loadWeatherForPosition(cached.lat, cached.lon, cached.name, cached.accuracy, cached.altitude);
         } catch {
             showError('Failed to refresh weather data');
         } finally {

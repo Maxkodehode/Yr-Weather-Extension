@@ -13,7 +13,7 @@ chrome.alarms.onAlarm.addListener((alarm: chrome.alarms.Alarm) => {
 });
 
 // Listen for weather data from popup
-chrome.runtime.onMessage.addListener((message: { type: string; symbolCode?: string; temperature?: number; lat?: number; lon?: number }) => {
+chrome.runtime.onMessage.addListener((message: { type: string; symbolCode?: string; temperature?: number; lat?: number; lon?: number; altitude?: number }) => {
     if (message.type === 'UPDATE_TOOLBAR' && message.symbolCode && message.temperature !== undefined) {
         const fileName = (weatherSymbolKeys as Record<string, string>)[message.symbolCode] || message.symbolCode;
         const iconPath = `icons/${fileName}.png`;
@@ -26,6 +26,7 @@ chrome.runtime.onMessage.addListener((message: { type: string; symbolCode?: stri
                 lastTemperature: message.temperature,
                 lastLat: message.lat,
                 lastLon: message.lon,
+                lastAltitude: message.altitude,
             });
         }
     }
@@ -33,13 +34,16 @@ chrome.runtime.onMessage.addListener((message: { type: string; symbolCode?: stri
 
 async function updateToolbarWeather() {
     try {
-        const stored = await chrome.storage.local.get(['lastLat', 'lastLon']) as { lastLat?: number; lastLon?: number };
+        const stored = await chrome.storage.local.get(['lastLat', 'lastLon', 'lastAltitude']) as { lastLat?: number; lastLon?: number; lastAltitude?: number };
         if (!stored.lastLat || !stored.lastLon) {
             console.warn('No saved location for background update');
             return;
         }
 
-        const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${stored.lastLat.toFixed(4)}&lon=${stored.lastLon.toFixed(4)}`;
+        let url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${stored.lastLat.toFixed(4)}&lon=${stored.lastLon.toFixed(4)}`;
+        if (stored.lastAltitude !== undefined) {
+            url += `&altitude=${stored.lastAltitude}`;
+        }
         const res = await fetch(url, {
             headers: { 'User-Agent': USER_AGENT }
         });
