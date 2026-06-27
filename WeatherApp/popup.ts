@@ -178,6 +178,13 @@ function formatTime(dateStr: string): string {
 
 // --- UI rendering ---
 
+function compassDirection(degrees: number): string {
+    const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                  'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const index = Math.round(degrees / 22.5) % 16;
+    return dirs[index];
+}
+
 function renderCurrentFromStorage(data: StoredWeather) {
     const descEl = document.getElementById('description')!;
     const tempEl = document.getElementById('temp')!;
@@ -190,7 +197,7 @@ function renderCurrentFromStorage(data: StoredWeather) {
 
     locEl.textContent = data.locationName;
     tempEl.textContent = `${data.temp}°C`;
-    windEl.textContent = `${data.wind} m/s`;
+    windEl.textContent = `${compassDirection(data.windDirection)} ${data.wind} m/s`;
     dewPointEl.textContent = `${data.dewPoint.toFixed(1)}°`;
     cloudsEl.textContent = `${data.clouds}%`;
     precipEl.textContent = `${data.precip.toFixed(1)} mm`;

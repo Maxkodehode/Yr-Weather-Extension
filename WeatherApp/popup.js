@@ -149,6 +149,12 @@ function formatTime(dateStr) {
     return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 // --- UI rendering ---
+function compassDirection(degrees) {
+    const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+        'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+    const index = Math.round(degrees / 22.5) % 16;
+    return dirs[index];
+}
 function renderCurrentFromStorage(data) {
     const descEl = document.getElementById('description');
     const tempEl = document.getElementById('temp');
@@ -160,7 +166,7 @@ function renderCurrentFromStorage(data) {
     const locEl = document.getElementById('location-name');
     locEl.textContent = data.locationName;
     tempEl.textContent = `${data.temp}°C`;
-    windEl.textContent = `${data.wind} m/s`;
+    windEl.textContent = `${compassDirection(data.windDirection)} ${data.wind} m/s`;
     dewPointEl.textContent = `${data.dewPoint.toFixed(1)}°`;
     cloudsEl.textContent = `${data.clouds}%`;
     precipEl.textContent = `${data.precip.toFixed(1)} mm`;

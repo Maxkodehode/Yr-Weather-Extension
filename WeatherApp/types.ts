@@ -211,6 +211,7 @@ export interface StoredWeather {
     temp: number;
     symbolCode: string | undefined;
     wind: number;
+    windDirection: number;  // degrees, 0 = North, 90 = East
     clouds: number;
     humidity: number;
     dewPoint: number;

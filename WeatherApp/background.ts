@@ -101,6 +101,7 @@ async function fetchAndStoreWeather(): Promise<void> {
         const temp = Math.round(instant.air_temperature);
         const symbolCode = weather.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
         const wind = instant.wind_speed;
+        const windDirection = instant.wind_from_direction;
         const clouds = instant.cloud_area_fraction;
         const humidity = instant.relative_humidity;
         const dewPoint = calculateDewPoint(instant.air_temperature, humidity);
@@ -121,6 +122,7 @@ async function fetchAndStoreWeather(): Promise<void> {
             temp,
             symbolCode,
             wind,
+            windDirection,
             clouds,
             humidity,
             dewPoint,
