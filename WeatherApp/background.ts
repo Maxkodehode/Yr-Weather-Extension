@@ -1,73 +1,190 @@
-import { weatherSymbolKeys, CONTACT_EMAIL } from './types.js';
+import { weatherSymbolKeys, CONTACT_EMAIL, StoredWeather } from './types.js';
 
 const USER_AGENT = `YrWeatherExtension/2.0 ${CONTACT_EMAIL}`;
 
+// --- Storage keys ---
+const STORAGE_KEY_WEATHER = 'yr_weather_data';       // full current weather snapshot
+
+// --- Alarm period: 10 minutes ---
+const UPDATE_PERIOD_MINUTES = 10;
+
+// --- Extension lifecycle ---
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
+    chrome.alarms.create('weatherUpdate', { periodInMinutes: UPDATE_PERIOD_MINUTES });
+    // Fetch immediately on install
+    fetchAndStoreWeather();
 });
 chrome.runtime.onStartup.addListener(() => {
-    chrome.alarms.create("weatherUpdate", { periodInMinutes: 15 });
+    chrome.alarms.create('weatherUpdate', { periodInMinutes: UPDATE_PERIOD_MINUTES });
 });
+
+// --- Alarm: periodic weather update ---
 chrome.alarms.onAlarm.addListener((alarm: chrome.alarms.Alarm) => {
-    if (alarm.name === "weatherUpdate") updateToolbarWeather();
-});
-
-// Listen for weather data from popup
-chrome.runtime.onMessage.addListener((message: { type: string; symbolCode?: string; temperature?: number; lat?: number; lon?: number; altitude?: number }) => {
-    if (message.type === 'UPDATE_TOOLBAR' && message.symbolCode && message.temperature !== undefined) {
-        const fileName = (weatherSymbolKeys as Record<string, string>)[message.symbolCode] || message.symbolCode;
-        const iconPath = `icons/${fileName}.png`;
-        updateToolbarIcon(iconPath, message.temperature);
-
-        // Save location so background can fetch independently
-        if (message.lat !== undefined && message.lon !== undefined) {
-            chrome.storage.local.set({
-                lastSymbolCode: message.symbolCode,
-                lastTemperature: message.temperature,
-                lastLat: message.lat,
-                lastLon: message.lon,
-                lastAltitude: message.altitude,
-            });
-        }
+    if (alarm.name === 'weatherUpdate') {
+        fetchAndStoreWeather();
     }
 });
 
-async function updateToolbarWeather() {
+// --- Message handling ---
+chrome.runtime.onMessage.addListener((message: { type: string; [key: string]: any }, sender, sendResponse) => {
+    if (message.type === 'SET_LOCATION') {
+        // Popup tells background about the current location (from geolocation or manual override)
+        chrome.storage.local.set({
+            lastLat: message.lat,
+            lastLon: message.lon,
+            lastAltitude: message.altitude,
+            locationName: message.locationName,
+        });
+        return; // no response needed
+    }
+
+    if (message.type === 'GET_WEATHER') {
+        // Popup (or any consumer) requesting latest weather data
+        getStoredWeather().then((data) => {
+            if (data) {
+                sendResponse({ type: 'WEATHER_DATA', data });
+            } else {
+                // No data yet — fetch now
+                fetchAndStoreWeather().then(() => {
+                    getStoredWeather().then((fresh) => {
+                        sendResponse({ type: 'WEATHER_DATA', data: fresh });
+                    });
+                });
+            }
+        }).catch(() => {
+            sendResponse({ type: 'WEATHER_ERROR', error: 'Failed to get weather' });
+        });
+        return true; // keep message channel open for async response
+    }
+
+    if (message.type === 'REFRESH_WEATHER') {
+        // Force a fresh fetch (e.g., user clicked refresh in popup)
+        fetchAndStoreWeather().then(() => {
+            getStoredWeather().then((data) => {
+                sendResponse({ type: 'WEATHER_DATA', data });
+            });
+        }).catch(() => {
+            sendResponse({ type: 'WEATHER_ERROR', error: 'Failed to refresh weather' });
+        });
+        return true; // async
+    }
+
+    if (message.type === 'UPDATE_TOOLBAR' && message.symbolCode && message.temperature !== undefined) {
+        // Legacy path: popup sends weather data after a manual fetch
+        // Still accepted but the primary flow is background-driven
+        void handlePopupToolbarUpdate({
+            symbolCode: message.symbolCode,
+            temperature: message.temperature,
+            lat: message.lat,
+            lon: message.lon,
+            altitude: message.altitude,
+        });
+    }
+});
+
+// --- Core: fetch weather from MET API and store in chrome.storage.local ---
+async function fetchAndStoreWeather(): Promise<void> {
     try {
-        const stored = await chrome.storage.local.get(['lastLat', 'lastLon', 'lastAltitude']) as { lastLat?: number; lastLon?: number; lastAltitude?: number };
-        if (!stored.lastLat || !stored.lastLon) {
-            console.warn('No saved location for background update');
+        const stored = await chrome.storage.local.get(['lastLat', 'lastLon', 'lastAltitude', 'locationName']) as { lastLat?: number; lastLon?: number; lastAltitude?: number; locationName?: string };
+        const lat = stored.lastLat;
+        const lon = stored.lastLon;
+        const altitude = stored.lastAltitude;
+        const storedName = stored.locationName;
+
+        if (lat === undefined || lon === undefined) {
+            console.warn('No saved location — cannot fetch weather');
             return;
         }
 
-        let url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${stored.lastLat.toFixed(4)}&lon=${stored.lastLon.toFixed(4)}`;
-        if (stored.lastAltitude !== undefined) {
-            url += `&altitude=${stored.lastAltitude}`;
-        }
-        const res = await fetch(url, {
-            headers: { 'User-Agent': USER_AGENT }
+        const weather = await fetchWeatherFromAPI(lat, lon, altitude);
+        const instant = weather.properties.timeseries[0].data.instant.details;
+        const temp = Math.round(instant.air_temperature);
+        const symbolCode = weather.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
+        const wind = instant.wind_speed;
+        const clouds = instant.cloud_area_fraction;
+        const humidity = instant.relative_humidity;
+        const dewPoint = calculateDewPoint(instant.air_temperature, humidity);
+        const precip = weather.properties.timeseries[0].data.next_1_hours?.details.precipitation_amount ?? 0;
+
+        // Build hourly forecast (next 6 entries)
+        const hourly: StoredWeather['hourly'] = weather.properties.timeseries.slice(0, 6).map((entry: any) => ({
+            time: entry.time,
+            temp: Math.round(entry.data.instant.details.air_temperature),
+            symbolCode: entry.data.next_1_hours?.summary.symbol_code,
+            precip: entry.data.next_1_hours?.details.precipitation_amount ?? 0,
+        }));
+
+        const fileName = symbolCode ? ((weatherSymbolKeys as Record<string, string>)[symbolCode] || symbolCode) : '01d';
+        const iconPath = `icons/${fileName}.png`;
+
+        const storedWeather: StoredWeather = {
+            temp,
+            symbolCode,
+            wind,
+            clouds,
+            humidity,
+            dewPoint,
+            precip,
+            iconPath,
+            locationName: storedName || 'Unknown',
+            fetchedAt: Date.now(),
+            hourly,
+        };
+
+        await chrome.storage.local.set({
+            [STORAGE_KEY_WEATHER]: storedWeather,
+            lastSymbolCode: symbolCode,
+            lastTemperature: temp,
         });
-        const data = await res.json() as any;
 
-        const temp = Math.round(data.properties.timeseries[0].data.instant.details.air_temperature);
-        const symbolCode = data.properties.timeseries[0].data.next_1_hours?.summary.symbol_code;
+        // Update toolbar icon
+        await updateToolbarIcon(iconPath, temp);
+        await chrome.action.setBadgeText({ text: '' });
 
-        if (symbolCode) {
-            const fileName = (weatherSymbolKeys as Record<string, string>)[symbolCode] || symbolCode;
-            const iconPath = `icons/${fileName}.png`;
-            await updateToolbarIcon(iconPath, temp);
-
-            // Update cached values
-            chrome.storage.local.set({
-                lastSymbolCode: symbolCode,
-                lastTemperature: temp,
-            });
-        }
+        console.log(`[Background] Weather updated: ${temp}°C at ${new Date().toLocaleTimeString()}`);
     } catch (err) {
-        console.error("Background weather update failed", err);
+        console.error('Background weather update failed', err);
     }
 }
 
+// --- Fetch weather from MET API ---
+async function fetchWeatherFromAPI(lat: number, lon: number, altitude?: number): Promise<any> {
+    let url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`;
+    if (altitude !== undefined) {
+        url += `&altitude=${altitude}`;
+    }
+    const res = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT }
+    });
+    if (!res.ok) throw new Error('Weather fetch failed');
+    return await res.json();
+}
+
+// --- Read stored weather data ---
+async function getStoredWeather(): Promise<StoredWeather | null> {
+    const data = await chrome.storage.local.get([STORAGE_KEY_WEATHER]);
+    return (data as any)[STORAGE_KEY_WEATHER] || null;
+}
+
+// --- Handle legacy popup toolbar update ---
+async function handlePopupToolbarUpdate(message: { symbolCode: string; temperature: number; lat?: number; lon?: number; altitude?: number }) {
+    const fileName = (weatherSymbolKeys as Record<string, string>)[message.symbolCode] || message.symbolCode;
+    const iconPath = `icons/${fileName}.png`;
+    await updateToolbarIcon(iconPath, message.temperature);
+
+    // Save location so background can fetch independently
+    if (message.lat !== undefined && message.lon !== undefined) {
+        await chrome.storage.local.set({
+            lastSymbolCode: message.symbolCode,
+            lastTemperature: message.temperature,
+            lastLat: message.lat,
+            lastLon: message.lon,
+            lastAltitude: message.altitude,
+        });
+    }
+}
+
+// --- Update toolbar icon with temperature overlay ---
 async function updateToolbarIcon(iconPath: string, temperature: number) {
     try {
         const canvas = new OffscreenCanvas(128, 128);
@@ -81,12 +198,12 @@ async function updateToolbarIcon(iconPath: string, temperature: number) {
         ctx.clearRect(0, 0, 128, 128);
         ctx.drawImage(imgBitmap, 0, 0, 128, 128);
 
-        ctx.fillStyle = "#00FFFF";
-        ctx.font = "bold 80px Arial";
-        ctx.textAlign = "right";
-        ctx.textBaseline = "bottom";
+        ctx.fillStyle = '#00FFFF';
+        ctx.font = 'bold 80px Arial';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'bottom';
 
-        ctx.strokeStyle = "#1A1A1B";
+        ctx.strokeStyle = '#1A1A1B';
         ctx.lineWidth = 8;
 
         const x = 110;
@@ -98,11 +215,19 @@ async function updateToolbarIcon(iconPath: string, temperature: number) {
         const imageData = ctx.getImageData(0, 0, 128, 128);
 
         await chrome.action.setIcon({
-            imageData: { "128": imageData }
+            imageData: { '128': imageData }
         });
 
-        await chrome.action.setBadgeText({ text: "" });
+        await chrome.action.setBadgeText({ text: '' });
     } catch (err) {
-        console.error("Icon update failed", err);
+        console.error('Icon update failed', err);
     }
+}
+
+// --- Dew point calculation (Magnus formula) ---
+function calculateDewPoint(tempC: number, rh: number): number {
+    const a = 17.625;
+    const b = 243.04;
+    const alpha = (a * tempC) / (b + tempC) + Math.log(rh / 100);
+    return (b * alpha) / (a - alpha);
 }

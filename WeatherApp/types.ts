@@ -205,3 +205,25 @@ export interface CachedLocation {
     accuracy: number;
     altitude?: number;
 }
+
+// Weather data stored in chrome.storage.local — single source of truth for both icon and popup
+export interface StoredWeather {
+    temp: number;
+    symbolCode: string | undefined;
+    wind: number;
+    clouds: number;
+    humidity: number;
+    dewPoint: number;
+    precip: number;
+    iconPath: string;
+    locationName: string;
+    fetchedAt: number;
+    hourly: HourlyEntry[];
+}
+
+export interface HourlyEntry {
+    time: string;
+    temp: number;
+    symbolCode: string | undefined;
+    precip: number;
+}
