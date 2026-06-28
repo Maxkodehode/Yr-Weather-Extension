@@ -94,6 +94,7 @@ async function fetchAndStoreWeather() {
         const clouds = instant.cloud_area_fraction;
         const humidity = instant.relative_humidity;
         const dewPoint = calculateDewPoint(instant.air_temperature, humidity);
+        const dewPointDepression = temp - dewPoint;
         const precip = weather.properties.timeseries[0].data.next_1_hours?.details.precipitation_amount ?? 0;
         // Build hourly forecast (next 6 entries)
         const hourly = weather.properties.timeseries.slice(0, 6).map((entry) => ({
@@ -111,7 +112,7 @@ async function fetchAndStoreWeather() {
             windDirection,
             clouds,
             humidity,
-            dewPoint,
+            dewPointDepression,
             precip,
             iconPath,
             locationName: storedName || 'Unknown',

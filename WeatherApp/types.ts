@@ -214,7 +214,7 @@ export interface StoredWeather {
     windDirection: number;  // degrees, 0 = North, 90 = East
     clouds: number;
     humidity: number;
-    dewPoint: number;
+    dewPointDepression: number;  // T - dew point (how far temp is above condensation)
     precip: number;
     iconPath: string;
     locationName: string;

@@ -162,7 +162,7 @@ function renderCurrentFromStorage(data) {
     locEl.textContent = data.locationName;
     tempEl.textContent = `${data.temp}°C`;
     windEl.innerHTML = `<span class="wind-arrow" style="transform: rotate(${data.windDirection}deg); display: inline-block;">${WIND_ARROW_SVG}</span> ${data.wind} m/s`;
-    dewPointEl.textContent = `${data.dewPoint.toFixed(1)}°`;
+    dewPointEl.textContent = `${data.dewPointDepression.toFixed(1)}°`;
     cloudsEl.textContent = `${data.clouds}%`;
     precipEl.textContent = `${data.precip.toFixed(1)} mm`;
     if (data.symbolCode) {
