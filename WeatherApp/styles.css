@@ -171,6 +171,11 @@ body {
     font-weight: 500;
 }
 
+.wind-arrow {
+    vertical-align: middle;
+    color: #7eb8da;
+}
+
 /* Hourly forecast */
 .hourly-section h3 {
     font-size: 0.8rem;

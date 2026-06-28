@@ -149,12 +149,7 @@ function formatTime(dateStr) {
     return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 // --- UI rendering ---
-function compassDirection(degrees) {
-    const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
-        'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-    const index = Math.round(degrees / 22.5) % 16;
-    return dirs[index];
-}
+const WIND_ARROW_SVG = `<svg width="12" height="12" viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg"><path d="M6 1 L10 11 L6 9 L2 11 Z" fill="currentColor"/></svg>`;
 function renderCurrentFromStorage(data) {
     const descEl = document.getElementById('description');
     const tempEl = document.getElementById('temp');
@@ -166,7 +161,7 @@ function renderCurrentFromStorage(data) {
     const locEl = document.getElementById('location-name');
     locEl.textContent = data.locationName;
     tempEl.textContent = `${data.temp}°C`;
-    windEl.textContent = `${compassDirection(data.windDirection)} ${data.wind} m/s`;
+    windEl.innerHTML = `<span class="wind-arrow" style="transform: rotate(${data.windDirection}deg); display: inline-block;">${WIND_ARROW_SVG}</span> ${data.wind} m/s`;
     dewPointEl.textContent = `${data.dewPoint.toFixed(1)}°`;
     cloudsEl.textContent = `${data.clouds}%`;
     precipEl.textContent = `${data.precip.toFixed(1)} mm`;
